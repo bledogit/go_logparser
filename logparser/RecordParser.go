@@ -25,13 +25,20 @@ func NewRecord(record string) LogRecord {
 	}()
 
 	r := LogRecord{}
-	parts := strings.Split(record, "\t")
 
-	r.path = parts[7] + "?" + parts[11]
-	r.status = parts[8]
-	r.ua = parts[10]
-	r.cookie = parts[12]
-	r.ip = parts[4]
-	r.good = true
-	return r
+	if record[0] == '#' { // skip headers
+		r.good = false
+		return r
+	} else {
+
+		parts := strings.Split(record, "\t")
+
+		r.path = parts[7] + "?" + parts[11]
+		r.status = parts[8]
+		r.ua = parts[10]
+		r.cookie = parts[12]
+		r.ip = parts[4]
+		r.good = true
+		return r
+	}
 }

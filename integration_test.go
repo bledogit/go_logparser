@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"log"
-	"me/hello/logparser"
+	"me/logparser_lambda/logparser"
 	"testing"
 
 	"github.com/aws/aws-lambda-go/events"

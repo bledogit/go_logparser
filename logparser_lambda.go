@@ -16,7 +16,7 @@ package main
 import (
 	"context"
 	"log"
-	"me/hello/logparser"
+	"me/logparser_lambda/logparser"
 	"os"
 	"strconv"
 
