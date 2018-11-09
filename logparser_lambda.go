@@ -32,7 +32,10 @@ func init() {
 func LambdaHandler(ctx context.Context, s3Event events.S3Event) (int, error) {
 	invokeCount = invokeCount + 1
 	maxRequests := os.Getenv("MAX_REQUESTS")
+	maxWorkers := os.Getenv("MAX_WORKERS")
 	endPoint := os.Getenv("ENDPOINT")
+	verbose := os.Getenv("VERBOSE")
+
 	if endPoint == "" {
 		panic("Environment ENDPOINT needs to be defined")
 	}
@@ -41,15 +44,20 @@ func LambdaHandler(ctx context.Context, s3Event events.S3Event) (int, error) {
 		//log.Println("RECORD", record)
 		parser := logparser.NewParser(endPoint)
 		if maxRequests != "" {
-			n, err := strconv.Atoi(maxRequests)
+			nW, err := strconv.Atoi(maxRequests)
 			if err != nil {
 				panic("Don't understand MAX_REQUESTS = " + maxRequests)
 			}
-			parser.WithMaxWorkers(n)
+			nR, err := strconv.Atoi(maxWorkers)
+			if err != nil {
+				panic("Don't understand MAX_WORKERS = " + maxWorkers)
+			}
+			parser.WithMaxRequest(nR)
+			parser.WithMaxWorkers(nW)
 		}
 		parser.ParseS3Object(record.S3)
 
-		log.Println("Stats: ", record.S3.Object.Key, "  = ", parser.GetStats())
+		log.Println("LOGPARSER STATS: ", record.S3.Object.Key, "  = ", parser.GetStats())
 	}
 
 	return invokeCount, nil
