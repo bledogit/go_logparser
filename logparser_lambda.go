@@ -1,15 +1,7 @@
-/*
-
- 	baseUrl := "http://sandbox-cloudapi.imrworldwide.com/"
-	bucket := "us-east-1-nlsn-data-dtvr-id3-aggregator-nonprod"
-	logParser := LogParser.New("EN660IH1TCIQT.2017-01-18-01.551a534d.gz", bucket, baseUrl)
-	logParser.ReadObject()
-
-	40 seconds
-	170%
-
-}
-*/
+//
+//
+// Lambda Wrapper for logParser
+//
 
 package main
 
@@ -34,7 +26,6 @@ func LambdaHandler(ctx context.Context, s3Event events.S3Event) (int, error) {
 	maxRequests := os.Getenv("MAX_REQUESTS")
 	maxWorkers := os.Getenv("MAX_WORKERS")
 	endPoint := os.Getenv("ENDPOINT")
-	verbose := os.Getenv("VERBOSE")
 
 	if endPoint == "" {
 		panic("Environment ENDPOINT needs to be defined")
