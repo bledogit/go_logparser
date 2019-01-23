@@ -1,8 +1,9 @@
-package main
+package main_test
 
 import (
 	"encoding/json"
 	"log"
+	"logparser_lambda/cmd/logparser_lambda"
 	"logparser_lambda/logparser"
 	"testing"
 
@@ -82,7 +83,7 @@ func TestS3EventIntegration(*testing.T) {
 	json.Unmarshal(eventData, &event)
 	//log.Println(event)
 
-	LambdaHandler(nil, event)
+	main.LambdaHandler(nil, event)
 
 	log.Println("end")
 }

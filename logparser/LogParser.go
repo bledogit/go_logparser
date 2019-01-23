@@ -15,7 +15,7 @@ package logparser
 import (
 	"bufio"
 	"log"
-	"strconv"
+	"strings"
 	"sync"
 
 	"compress/gzip"
@@ -26,31 +26,25 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
-var ( // global s3 service
-	svc  *s3.S3
-	once sync.Once
-)
-
 type LogParser struct {
 	maxRequests int
 	base        string
 	records     chan LogRecord
-	results     chan result
+	results     chan Result
 	nWorkers    int
 	stats       map[string]int
 }
 
-type result struct {
+type Result struct {
 	code int
+	err  string
 }
 
 // factory
 func s3Service() *s3.S3 {
-	once.Do(func() {
 
-		svc = s3.New(session.New(&aws.Config{
+	svc := s3.New(session.New(&aws.Config{
 			Region: aws.String("us-east-1")}))
-	})
 	return svc
 }
 
@@ -58,13 +52,13 @@ func s3Service() *s3.S3 {
 // defaults to 1000 workers, all requests
 // @param base Base url of endpoint
 func NewParser(base string) LogParser {
-	n := 1000
+	n := 300
 
 	l := LogParser{}
 	l.maxRequests = 999999999
 	l.base = base
 	l.records = make(chan LogRecord, n)
-	l.results = make(chan result, n)
+	l.results = make(chan Result, n)
 	l.nWorkers = n
 	l.stats = make(map[string]int)
 
@@ -80,7 +74,7 @@ func (l *LogParser) WithMaxRequest(max int) *LogParser {
 // Configures parser with a maximum number of workers
 func (l *LogParser) WithMaxWorkers(max int) *LogParser {
 	l.records = make(chan LogRecord, max)
-	l.results = make(chan result, max)
+	l.results = make(chan Result, max)
 	l.nWorkers = max
 	return l
 }
@@ -147,9 +141,9 @@ func (l *LogParser) worker(id int, wg *sync.WaitGroup) {
 	for record := range l.records {
 		count++
 		if record.good {
-			l.results <- result{sender.sendRecord(l.base, record)}
+			l.results <- sender.sendRecord(l.base, record)
 		} else {
-			l.results <- result{-1}
+			l.results <- Result{-4, "Bad Record"}
 		}
 	}
 
@@ -176,7 +170,10 @@ func (l *LogParser) processResuts(wg *sync.WaitGroup) {
 	total := 0
 	for result := range l.results {
 		total++
-		code := strconv.Itoa(result.code)
+		//code := strconv.Itoa(result.code)
+		code := strings.Replace(result.err, " ", "_", -1)
+		code = strings.Replace(result.err, ":", "_", -1)
+
 		s, ok := l.stats[code]
 		if ok {
 			l.stats[code] = s + 1
@@ -188,5 +185,7 @@ func (l *LogParser) processResuts(wg *sync.WaitGroup) {
 		//}
 	}
 	l.stats["total"] = total
+	l.stats["workers"] = l.nWorkers
+	l.stats["requests"] = l.maxRequests
 
 }

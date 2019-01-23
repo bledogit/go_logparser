@@ -1,4 +1,4 @@
-FILES=$(wildcard ./*.go) $(wildcard $(logparser)/*.go)
+FILES=$(wildcard ./*.go) $(wildcard cmd/$(logparser)/*.go)
 PACKAGE=logparser.zip
 REGION=us-east-1
 TARGET=logparser_lambda
@@ -9,11 +9,11 @@ ENV=Variables="{ENDPOINT=http://sandbox-cloudapi.imrworldwide.com/,MAX_REQUESTS=
 
 test:
 	@echo Running test
-	go test
+	go test ./...
 
 $(TARGET): $(FILES)
 	@echo Building ... $@
-	GOOS=linux go build
+	GOOS=linux go build cmd/$(TARGET)/main.go
 
 package: logparser_lambda
 	@echo Building deployment package

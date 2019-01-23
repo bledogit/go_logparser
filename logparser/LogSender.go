@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"time"
 )
 
@@ -30,35 +31,50 @@ func NewSender() *Sender {
 }
 
 // send a record, 0 on panic
-func (s *Sender) sendRecord(baseUrl string, record LogRecord) int {
+func (s *Sender) sendRecord(baseUrl string, record LogRecord) Result {
+
+	result := Result{0, "good"}
+
 	defer func() {
 		if r := recover(); r != nil {
-			log.Println("recovered from ", r)
+			log.Println("Recovered from sendRecord", r)
+			result.err = "unknown"
+			result.code = -3
 		}
 	}()
 
-	url := baseUrl + record.path
+	targetUrl := baseUrl + record.path
 
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		panic("Can't request")
+	req, err := http.NewRequest("GET", targetUrl, nil)
+	if err == nil {
+		req.Header.Add("X-Forwarded-For", record.ip)
+		req.Header.Add("User-Agent", record.ua)
+		req.Header.Add("X-Device-User-Agent", record.ua)
+		req.Header.Add("Cookie", record.cookie)
+		//req.Close = true
+		resp, err := s.client.Do(req)
+		if err == nil {
+			defer resp.Body.Close()
+			// don't care about the response
+			ioutil.ReadAll(resp.Body)
+			result.code = resp.StatusCode
+		} else {
+			if serr, ok := err.(*url.Error); ok {
+				result.err = serr.Err.Error()
+			} else {
+				result.err = "unknown(req)"
+			}
+			result.code = -2
+		}
+	} else {
+		if serr, ok := err.(*url.Error); ok {
+			result.err = serr.Err.Error()
+		} else {
+			result.err = "unknown(pool)"
+		}
+		result.code = -1
 	}
 
-	req.Header.Add("X-Forwarded-For", record.ip)
-	req.Header.Add("User-Agent", record.ua)
-	req.Header.Add("X-Device-User-Agent", record.ua)
-	req.Header.Add("Cookie", record.cookie)
-	//req.Close = true
-
-	resp2, err := s.client.Do(req)
-	if err != nil {
-		panic("Can't do shit" + err.Error())
-	}
-	defer resp2.Body.Close()
-
-	// don't care about the response
-	ioutil.ReadAll(resp2.Body)
-
-	return resp2.StatusCode
+	return result
 
 }
