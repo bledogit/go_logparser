@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"log"
-	"me/logparser_lambda/logparser"
+	"logparser_lambda/logparser"
 	"testing"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -11,12 +11,40 @@ import (
 
 func TestIntegration(*testing.T) {
 	log.Println("TestIntegration")
-	parser := logparser.NewParser(
+	var parser = logparser.NewParser(
 		"http://sandbox-cloudapi.imrworldwide.com/")
-	parser.WithMaxRequest(400)
+
+	parser.WithMaxRequest(4)
 
 	parser.ParseS3ObjectKey("EN660IH1TCIQT.2017-01-18-01.551a534d.gz",
 		"us-east-1-nlsn-data-dtvr-id3-aggregator-nonprod")
+
+	log.Println("LOGPARSER STATS: ", parser.GetStats())
+
+	parser = logparser.NewParser(
+		"http://sandbox-cloudapi.imrworldwide.com/")
+
+	parser.ParseS3ObjectKey("EN660IH1TCIQT.2017-01-18-01.551a534d.gz",
+		"us-east-1-nlsn-data-dtvr-id3-aggregator-nonprod")
+
+	log.Println("LOGPARSER STATS: ", parser.GetStats())
+
+	parser = logparser.NewParser(
+		"http://sandbox-cloudapi.imrworldwide.com/")
+
+	parser.ParseS3ObjectKey("EN660IH1TCIQT.2017-01-18-01.551a534d.gz",
+		"us-east-1-nlsn-data-dtvr-id3-aggregator-nonprod")
+
+	log.Println("LOGPARSER STATS: ", parser.GetStats())
+
+	parser = logparser.NewParser(
+		"http://sandbox-cloudapi.imrworldwide.com/")
+
+	parser.ParseS3ObjectKey("EN660IH1TCIQT.2017-01-18-01.551a534d.gz",
+		"us-east-1-nlsn-data-dtvr-id3-aggregator-nonprod")
+
+	log.Println("LOGPARSER STATS: ", parser.GetStats())
+
 }
 
 func TestS3EventIntegration(*testing.T) {
