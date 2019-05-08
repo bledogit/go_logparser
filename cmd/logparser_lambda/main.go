@@ -11,6 +11,7 @@ import (
 	"logparser_lambda/logparser"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -31,9 +32,17 @@ func LambdaHandler(ctx context.Context, s3Event events.S3Event) (int, error) {
 		panic("Environment ENDPOINT needs to be defined")
 	}
 
+	endPoints := strings.Split(endPoint, ",")
+	urls := make([]logparser.BaseUrl, len(endPoints))
+
+	for id, ep := range endPoints {
+		//log.Print("adding ", ep)
+		urls[id] = logparser.BaseUrl{ep, 1}
+	}
+
 	for _, record := range s3Event.Records {
 		//log.Println("RECORD", record)
-		parser := logparser.NewParser(endPoint)
+		parser := logparser.NewParser(urls)
 		if maxRequests != "" {
 			nR, err := strconv.Atoi(maxRequests)
 			if err != nil {
@@ -48,7 +57,7 @@ func LambdaHandler(ctx context.Context, s3Event events.S3Event) (int, error) {
 		}
 		parser.ParseS3Object(record.S3)
 
-		log.Println("LOGPARSER STATS: ", record.S3.Object.Key, "  = ", parser.GetStats())
+		log.Println("LOGPARSER STATS: ", record.S3.Object.Key, "  = ", parser.GetStats(), " urls=", len(urls))
 	}
 
 	return invokeCount, nil

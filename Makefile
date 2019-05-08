@@ -13,7 +13,7 @@ test:
 
 $(TARGET): $(FILES)
 	@echo Building ... $@
-	GOOS=linux go build cmd/$(TARGET)/main.go
+	GOOS=linux go build -o $(TARGET) cmd/$(TARGET)/main.go
 
 package: logparser_lambda
 	@echo Building deployment package

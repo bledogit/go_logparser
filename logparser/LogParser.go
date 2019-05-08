@@ -28,11 +28,16 @@ import (
 
 type LogParser struct {
 	maxRequests int
-	base        string
+	base        []BaseUrl
 	records     chan LogRecord
 	results     chan Result
 	nWorkers    int
 	stats       map[string]int
+}
+
+type BaseUrl struct {
+	Base   string
+	Weight int
 }
 
 type Result struct {
@@ -44,19 +49,19 @@ type Result struct {
 func s3Service() *s3.S3 {
 
 	svc := s3.New(session.New(&aws.Config{
-			Region: aws.String("us-east-1")}))
+		Region: aws.String("us-east-1")}))
 	return svc
 }
 
 // New parser
 // defaults to 1000 workers, all requests
 // @param base Base url of endpoint
-func NewParser(base string) LogParser {
+func NewParser(urls []BaseUrl) LogParser {
 	n := 300
 
 	l := LogParser{}
 	l.maxRequests = 999999999
-	l.base = base
+	l.base = urls
 	l.records = make(chan LogRecord, n)
 	l.results = make(chan Result, n)
 	l.nWorkers = n
@@ -134,14 +139,14 @@ func (l *LogParser) ParseS3ObjectKey(object string, bucket string) {
 }
 
 // picks records from record channel into results channel which contains the http error code
-func (l *LogParser) worker(id int, wg *sync.WaitGroup) {
+func (l *LogParser) worker(id int, wg *sync.WaitGroup, base string) {
 	defer wg.Done()
 	sender := NewSender()
 	count := 0
 	for record := range l.records {
 		count++
 		if record.good {
-			l.results <- sender.sendRecord(l.base, record)
+			l.results <- sender.sendRecord(base, record)
 		} else {
 			l.results <- Result{-4, "Bad Record"}
 		}
@@ -154,10 +159,22 @@ func (l *LogParser) worker(id int, wg *sync.WaitGroup) {
 // Creates worker pool and waits for workers to be done
 func (l *LogParser) createWorkerPool() {
 	//log.Println("Create ", l.nWorkers, " workers")
+	idx := -1
+	nUrls := len(l.base)
+	urlsPerWorker := l.nWorkers / nUrls
+
 	var wg sync.WaitGroup
 	for i := 0; i < l.nWorkers; i++ {
 		wg.Add(1)
-		go l.worker(i, &wg)
+
+		if i%urlsPerWorker == 0 {
+			idx++
+			if idx > nUrls {
+				idx = nUrls - 1
+			}
+		}
+		//log.Print("worker ", l.base[idx].Base)
+		go l.worker(i, &wg, l.base[idx].Base)
 	}
 	wg.Wait()
 	close(l.results)
